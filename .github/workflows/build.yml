@@ -1,0 +1,120 @@
+name: Build releases
+
+on: workflow_dispatch
+jobs:
+  build:
+    name: clang-${{ matrix.version }}
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - 16.0.6
+          - 17.0.6
+          - 18.1.5
+
+        include:
+          - version: 16.0.6
+            branch: release/16.x
+            version_major: 16
+          - version: 17.0.6
+            branch: release/17.x
+            version_major: 17
+          - version: 18.1.5
+            branch: release/18.x
+            version_major: 18
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: CentOS Rootfs
+        run: |
+          wget -q https://github.com/sbwml/kernel-latest-centos/releases/download/rootfs/rootfs.tar.xz
+          wget -q https://github.com/sbwml/tools/releases/download/16.0.6/clang-16.0.6-x86_64-redhat-linux.tar.gz
+          tar xf rootfs.tar.xz && rm -f rootfs.tar.xz
+          tar xf clang-16.0.6-x86_64-redhat-linux.tar.gz && rm -f clang-16.0.6-x86_64-redhat-linux.tar.gz
+          echo "rootfs=$(pwd)/rootfs" >> "$GITHUB_ENV"
+          sudo mount -o bind /dev rootfs/dev
+          sudo mount -t proc /proc rootfs/proc
+          sudo mount -t sysfs /sys rootfs/proc
+          # copy source to rootfs
+          sudo cp -a build.sh rootfs
+          sudo cp -a cmake rootfs
+          sudo cp -a src/* rootfs
+          sudo cp -a tools rootfs/opt
+          sudo mv clang-16.0.6-x86_64-redhat-linux rootfs/opt/clang
+
+      - name: Checkout LLVM ${{ matrix.version }}
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          ref: ${{ matrix.branch }}
+          path: llvm-project
+
+      - name: Patch llvm-project
+        run: |
+          if [[ "${{ matrix.version_major }}" == 16 ]]; then
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-16-add-lld-install-targets.patch
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-16-add-llvm-name-prefix-to-llc-lli-opt-tools.patch
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-16-force-disable-clang-ast-introspection.patch
+          elif [[ "${{ matrix.version_major }}" == 17 ]]; then
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-17-add-lld-install-targets.patch
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-17-add-llvm-name-prefix-to-llc-lli-opt-tools.patch
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-17-force-disable-clang-ast-introspection.patch
+          elif [[ "${{ matrix.version_major }}" == 18 ]]; then
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-18-add-lld-install-targets.patch
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-18-add-llvm-name-prefix-to-llc-lli-opt-tools.patch
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-18-force-disable-clang-ast-introspection.patch
+          fi
+          sudo mv llvm-project ${{ env.rootfs }}
+
+      - name: Build System Setup
+        run: |
+          sudo chroot ${{ env.rootfs }} /bin/bash /build.sh setup
+
+      - name: Build Dependent
+        run: |
+          sudo chroot ${{ env.rootfs }} /bin/bash /build.sh dll
+
+      - name: Build LLVM
+        run: |
+          sudo chroot ${{ env.rootfs }} /bin/bash /build.sh llvm ${{ matrix.version }}
+
+      - name: Install LLVM
+        run: |
+          # llvm
+          sudo mv ${{ env.rootfs }}/llvm-install llvm-install
+          sudo cp -a ${{ env.rootfs }}/llvm-build/lib/LLVMgold.so llvm-install/lib
+          sudo mkdir llvm-install/lib/bfd-plugins
+          sudo ln -sf ../LLVMgold.so llvm-install/lib/bfd-plugins/LLVMgold.so
+          sudo ln -sf llvm-llc llvm-install/bin/llc
+          sudo ln -sf llvm-opt llvm-install/bin/opt
+          sudo rm -rf llvm-install/bin/{clang,clang++,clang-cl,clang-cpp}
+          sudo ln -sf clang-${{ matrix.version_major }} llvm-install/bin/clang
+          sudo ln -sf clang-${{ matrix.version_major }} llvm-install/bin/clang++
+          sudo ln -sf clang-${{ matrix.version_major }} llvm-install/bin/clang-cl
+          sudo ln -sf clang-${{ matrix.version_major }} llvm-install/bin/clang-cpp
+          # libs
+          sudo cp -a ${{ env.rootfs }}/lib-install/* llvm-install/lib
+          sudo chown -R runner.runner llvm-install
+
+      - name: Package LLVM
+        run: |
+          mv llvm-install clang-${{ matrix.version }}-x86_64-redhat-linux
+          tar -Jcf clang-${{ matrix.version }}-x86_64-redhat-linux.tar.xz clang-${{ matrix.version }}-x86_64-redhat-linux
+
+      - name: Create release
+        continue-on-error: true
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          name: clang-${{ matrix.version }}
+          allowUpdates: true
+          tag: ${{ matrix.version }}
+          commit: main
+          replacesArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: clang-${{ matrix.version }}-x86_64-redhat-linux.tar.xz
