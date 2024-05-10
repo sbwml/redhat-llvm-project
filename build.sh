@@ -6,7 +6,7 @@ setup() {
 	# setup environment
  	curl -s https://repo.cooluc.com/mailbox.repo > /etc/yum.repos.d/mailbox.repo
 	yum install -y centos-release-scl-rh centos-release-scl epel-release
-	yum install -y libedit-devel libxml2-devel python3 python3-devel automake ncurses-devel git2 zlib-devel libffi-devel libxml2-devel zstd libzstd-devel xz xz-devel
+	yum install -y libedit-devel libxml2-devel python3 python3-devel automake ncurses-devel git2 zlib-devel libffi-devel libxml2-devel zstd libzstd-devel xz xz-devel binutils-devel
 	yum install -y devtoolset-11-gcc devtoolset-11-gcc-c++ devtoolset-11-binutils-devel devtoolset-11-runtime devtoolset-11-libstdc++-devel
 }
 
