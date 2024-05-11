@@ -34,9 +34,9 @@ jobs:
       - name: CentOS Rootfs
         run: |
           wget -q https://github.com/sbwml/kernel-latest-centos/releases/download/rootfs/rootfs.tar.xz
-          wget -q https://github.com/sbwml/tools/releases/download/16.0.6/clang-16.0.6-x86_64-redhat-linux.tar.gz
+          wget -q https://github.com/sbwml/redhat-llvm-project/releases/download/16.0.6/clang-16.0.6-x86_64-redhat-linux.tar.xz
           tar xf rootfs.tar.xz && rm -f rootfs.tar.xz
-          tar xf clang-16.0.6-x86_64-redhat-linux.tar.gz && rm -f clang-16.0.6-x86_64-redhat-linux.tar.gz
+          tar xf clang-16.0.6-x86_64-redhat-linux.tar.xz && rm -f clang-16.0.6-x86_64-redhat-linux.tar.xz
           echo "rootfs=$(pwd)/rootfs" >> "$GITHUB_ENV"
           sudo mount -o bind /dev rootfs/dev
           sudo mount -t proc /proc rootfs/proc
