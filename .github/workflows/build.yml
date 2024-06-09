@@ -4,7 +4,7 @@ on: workflow_dispatch
 jobs:
   build:
     name: clang-${{ matrix.version }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash
@@ -105,7 +105,8 @@ jobs:
       - name: Package LLVM
         run: |
           mv llvm-install clang-${{ matrix.version }}-x86_64-redhat-linux
-          tar -Jcf clang-${{ matrix.version }}-x86_64-redhat-linux.tar.xz clang-${{ matrix.version }}-x86_64-redhat-linux
+          sudo chown -R root:root clang-${{ matrix.version }}-x86_64-redhat-linux
+          sudo tar -Jcf clang-${{ matrix.version }}-x86_64-redhat-linux.tar.xz clang-${{ matrix.version }}-x86_64-redhat-linux
 
       - name: Create release
         continue-on-error: true
