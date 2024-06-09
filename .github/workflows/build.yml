@@ -14,7 +14,7 @@ jobs:
         version:
           - 16.0.6
           - 17.0.6
-          - 18.1.6
+          - 18.1.7
 
         include:
           - version: 16.0.6
@@ -24,7 +24,7 @@ jobs:
             branch: release/17.x
             version_major: 17
           - version: 18.1.6
-            branch: llvmorg-18.1.6
+            branch: llvmorg-18.1.7
             version_major: 18
 
     steps:
