@@ -198,6 +198,7 @@ set(LLVM_DISTRIBUTION_COMPONENTS
     LTO
     clang-format
     clang-tidy
+    runtimes
     ${LLVM_DEVELOPMENT_COMPONENTS}
     ${LLVM_TOOLCHAIN_TOOLS}
     ${LLVM_TOOLCHAIN_UTILITIES}
