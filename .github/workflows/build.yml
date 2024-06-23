@@ -1,35 +1,43 @@
-name: Build releases
+name: Build LLVM/Clang
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Select version to build'
+        required: true
+        default: '16.0.6'
+        type: choice
+        options:
+          - '16.0.6'
+          - '17.0.6'
+          - '18.1.8'
+
 jobs:
   build:
-    name: clang-${{ matrix.version }}
+    name: Build LLVM/Clang
     runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - 16.0.6
-          - 17.0.6
-          - 18.1.7
-
-        include:
-          - version: 16.0.6
-            branch: release/16.x
-            version_major: 16
-          - version: 17.0.6
-            branch: release/17.x
-            version_major: 17
-          - version: 18.1.7
-            branch: llvmorg-18.1.7
-            version_major: 18
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set version-specific variables
+        run: |
+          if [[ "${{ github.event.inputs.version }}" =~ ^16\..* ]]; then
+            echo "branch=llvmorg-${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "version_major=16" >> $GITHUB_ENV
+          elif [[ "${{ github.event.inputs.version }}" =~ ^17\..* ]]; then
+            echo "branch=llvmorg-${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "version_major=17" >> $GITHUB_ENV
+          elif [[ "${{ github.event.inputs.version }}" =~ ^18\..* ]]; then
+            echo "branch=llvmorg-${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "version_major=18" >> $GITHUB_ENV
+          fi
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
       - name: CentOS Rootfs
         run: |
@@ -48,24 +56,24 @@ jobs:
           sudo cp -a tools rootfs/opt
           sudo mv clang-16.0.6-x86_64-redhat-linux rootfs/opt/clang
 
-      - name: Checkout LLVM ${{ matrix.version }}
+      - name: Checkout LLVM ${{ env.version }}
         uses: actions/checkout@v4
         with:
           repository: llvm/llvm-project
-          ref: ${{ matrix.branch }}
+          ref: ${{ env.branch }}
           path: llvm-project
 
       - name: Patch llvm-project
         run: |
-          if [[ "${{ matrix.version_major }}" == 16 ]]; then
+          if [[ "${{ env.version_major }}" == 16 ]]; then
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-16-add-lld-install-targets.patch
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-16-add-llvm-name-prefix-to-llc-lli-opt-tools.patch
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-16-force-disable-clang-ast-introspection.patch
-          elif [[ "${{ matrix.version_major }}" == 17 ]]; then
+          elif [[ "${{ env.version_major }}" == 17 ]]; then
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-17-add-lld-install-targets.patch
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-17-add-llvm-name-prefix-to-llc-lli-opt-tools.patch
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-17-force-disable-clang-ast-introspection.patch
-          elif [[ "${{ matrix.version_major }}" == 18 ]]; then
+          elif [[ "${{ env.version_major }}" == 18 ]]; then
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-18-add-lld-install-targets.patch
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-18-add-llvm-name-prefix-to-llc-lli-opt-tools.patch
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-18-force-disable-clang-ast-introspection.patch
@@ -82,7 +90,7 @@ jobs:
 
       - name: Build LLVM
         run: |
-          sudo chroot ${{ env.rootfs }} /bin/bash /build.sh llvm ${{ matrix.version }}
+          sudo chroot ${{ env.rootfs }} /bin/bash /build.sh llvm ${{ env.version }}
 
       - name: Install LLVM
         run: |
@@ -94,28 +102,28 @@ jobs:
           sudo ln -sf llvm-llc llvm-install/bin/llc
           sudo ln -sf llvm-opt llvm-install/bin/opt
           sudo rm -rf llvm-install/bin/{clang,clang++,clang-cl,clang-cpp}
-          sudo ln -sf clang-${{ matrix.version_major }} llvm-install/bin/clang
-          sudo ln -sf clang-${{ matrix.version_major }} llvm-install/bin/clang++
-          sudo ln -sf clang-${{ matrix.version_major }} llvm-install/bin/clang-cl
-          sudo ln -sf clang-${{ matrix.version_major }} llvm-install/bin/clang-cpp
+          sudo ln -sf clang-${{ env.version_major }} llvm-install/bin/clang
+          sudo ln -sf clang-${{ env.version_major }} llvm-install/bin/clang++
+          sudo ln -sf clang-${{ env.version_major }} llvm-install/bin/clang-cl
+          sudo ln -sf clang-${{ env.version_major }} llvm-install/bin/clang-cpp
           # libs
           sudo cp -a ${{ env.rootfs }}/lib-install/* llvm-install/lib
           sudo chown -R runner.runner llvm-install
 
       - name: Package LLVM
         run: |
-          mv llvm-install clang-${{ matrix.version }}-x86_64-redhat-linux
-          sudo chown -R root:root clang-${{ matrix.version }}-x86_64-redhat-linux
-          sudo tar -Jcf clang-${{ matrix.version }}-x86_64-redhat-linux.tar.xz clang-${{ matrix.version }}-x86_64-redhat-linux
+          mv llvm-install clang-${{ env.version }}-x86_64-redhat-linux
+          sudo chown -R root:root clang-${{ env.version }}-x86_64-redhat-linux
+          sudo tar -Jcf clang-${{ env.version }}-x86_64-redhat-linux.tar.xz clang-${{ env.version }}-x86_64-redhat-linux
 
       - name: Create release
         continue-on-error: true
         uses: ncipollo/release-action@v1.14.0
         with:
-          name: clang-${{ matrix.version }}
+          name: clang-${{ env.version }}
           allowUpdates: true
-          tag: ${{ matrix.version }}
+          tag: ${{ env.version }}
           commit: main
           replacesArtifacts: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: clang-${{ matrix.version }}-x86_64-redhat-linux.tar.xz
+          artifacts: clang-${{ env.version }}-x86_64-redhat-linux.tar.xz
