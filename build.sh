@@ -91,8 +91,8 @@ build_llvm() {
 	CC=clang CXX=clang++ cmake --build llvm-build --target install-distribution
 
 	# set rpath
-	patchelf --set-rpath '$ORIGIN/' llvm-install/lib/x86_64-redhat-linux/libc++.so.1.0
-	patchelf --set-rpath '$ORIGIN/' llvm-install/lib/x86_64-redhat-linux/libc++abi.so.1.0
+	patchelf --set-rpath '$ORIGIN/' llvm-install/lib/x86_64-redhat-linux-gnu/libc++.so.1.0
+	patchelf --set-rpath '$ORIGIN/' llvm-install/lib/x86_64-redhat-linux-gnu/libc++abi.so.1.0
 }
 
 case $script_action in
