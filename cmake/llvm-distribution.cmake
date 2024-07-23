@@ -48,6 +48,7 @@ set(LLVM_TARGETS_TO_BUILD
     CACHE STRING "")
 
 set(LLVM_ENABLE_PROJECTS
+    "bolt"
     "clang"
     "clang-tools-extra"
     "compiler-rt"
@@ -125,6 +126,7 @@ set(LLVM_TOOLCHAIN_TOOLS
     opt
     dsymutil
     llvm-as
+    llvm-bolt
     llvm-cat
     llvm-cov
     llvm-config
