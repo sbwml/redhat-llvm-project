@@ -4,14 +4,25 @@ script_action=${1}
 
 setup() {
 	# setup environment
- 	curl -s https://repo.cooluc.com/mailbox.repo > /etc/yum.repos.d/mailbox.repo
+	curl -s https://repo.cooluc.com/mailbox.repo > /etc/yum.repos.d/mailbox.repo
 	yum install -y centos-release-scl-rh centos-release-scl epel-release
-	yum install -y libedit-devel libxml2-devel python3 python3-devel automake ncurses-devel git2 zlib-devel libffi-devel libxml2-devel zstd libzstd-devel xz xz-devel binutils-devel patchelf
+	yum install -y libedit-devel libxml2-devel python3 python3-devel automake ncurses-devel git2 zlib-devel libffi-devel libxml2-devel zstd libzstd-devel xz xz-devel binutils-devel patchelf openssl11
 	yum install -y devtoolset-11-gcc devtoolset-11-gcc-c++ devtoolset-11-binutils-devel devtoolset-11-runtime devtoolset-11-libstdc++-devel
+	# python3
+	curl -L https://us.cooluc.com/python3/python-3.10.14.tar.xz -o /tmp/python3.tar.xz --progress-bar
+	mkdir -p /opt
+	tar xf /tmp/python3.tar.xz -C /opt/
+ 	rm -f /tmp/opt_python3.tar.xz
+	echo "/opt/python3/lib" > /etc/ld.so.conf.d/python3.conf
+	ldconfig -v >/dev/null 2>&1
+	echo 'export PATH="/opt/python3/bin:$PATH"' >> ~/.bash_profile
+	echo 'export PATH="/opt/python3/bin:$PATH"' >> /etc/profile
+	source ~/.bash_profile
 }
 
 build_dll() {
 	source /opt/rh/devtoolset-11/enable
+	source ~/.bash_profile
 	export PATH="/opt/tools/bin:/opt/clang/bin:$PATH"
 	export LD_LIBRARY_PATH="/opt/clang/lib:$LD_LIBRARY_PATH"
 	TOP=$(pwd)
