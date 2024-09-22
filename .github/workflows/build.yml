@@ -12,6 +12,7 @@ on:
           - '16.0.6'
           - '17.0.6'
           - '18.1.8'
+          - '19.1.0'
 
 jobs:
   build:
@@ -36,6 +37,9 @@ jobs:
           elif [[ "${{ github.event.inputs.version }}" =~ ^18\..* ]]; then
             echo "branch=llvmorg-${{ github.event.inputs.version }}" >> $GITHUB_ENV
             echo "version_major=18" >> $GITHUB_ENV
+          elif [[ "${{ github.event.inputs.version }}" =~ ^19\..* ]]; then
+            echo "branch=llvmorg-${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "version_major=19" >> $GITHUB_ENV
           fi
           echo "version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
@@ -77,6 +81,9 @@ jobs:
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-18-add-lld-install-targets.patch
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-18-add-llvm-name-prefix-to-llc-lli-opt-tools.patch
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-18-force-disable-clang-ast-introspection.patch
+          elif [[ "${{ env.version_major }}" == 19 ]]; then
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-19-add-lld-install-targets.patch
+            git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-19-add-llvm-name-prefix-to-llc-lli-opt-tools.patch
           fi
           sudo mv llvm-project ${{ env.rootfs }}
 
