@@ -46,9 +46,16 @@ jobs:
       - name: CentOS Rootfs
         run: |
           wget -q https://github.com/sbwml/kernel-latest-centos/releases/download/rootfs/rootfs.tar.xz
-          wget -q https://github.com/sbwml/redhat-llvm-project/releases/download/16.0.6/clang-16.0.6-x86_64-redhat-linux.tar.xz
           tar xf rootfs.tar.xz && rm -f rootfs.tar.xz
-          tar xf clang-16.0.6-x86_64-redhat-linux.tar.xz && rm -f clang-16.0.6-x86_64-redhat-linux.tar.xz
+          if [[ "${{ env.version_major }}" == 19 ]]; then
+              wget -q https://github.com/sbwml/redhat-llvm-project/releases/download/19.1.0/clang-19.1.0-x86_64-redhat-linux.tar.xz
+              tar xf clang-19.1.0-x86_64-redhat-linux.tar.xz && rm -f clang-19.1.0-x86_64-redhat-linux.tar.xz
+              sudo mv clang-19.1.0-x86_64-redhat-linux rootfs/opt/clang
+          else
+              wget -q https://github.com/sbwml/redhat-llvm-project/releases/download/16.0.6/clang-16.0.6-x86_64-redhat-linux.tar.xz
+              tar xf clang-16.0.6-x86_64-redhat-linux.tar.xz && rm -f clang-16.0.6-x86_64-redhat-linux.tar.xz
+              sudo mv clang-16.0.6-x86_64-redhat-linux rootfs/opt/clang
+          fi
           echo "rootfs=$(pwd)/rootfs" >> "$GITHUB_ENV"
           sudo mount -o bind /dev rootfs/dev
           sudo mount -t proc /proc rootfs/proc
@@ -58,7 +65,6 @@ jobs:
           sudo cp -a cmake rootfs
           sudo cp -a src/* rootfs
           sudo cp -a tools rootfs/opt
-          sudo mv clang-16.0.6-x86_64-redhat-linux rootfs/opt/clang
 
       - name: Checkout LLVM ${{ env.version }}
         uses: actions/checkout@v4
@@ -85,6 +91,7 @@ jobs:
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-19-add-lld-install-targets.patch
             git -C llvm-project apply $GITHUB_WORKSPACE/patches/llvm-19-add-llvm-name-prefix-to-llc-lli-opt-tools.patch
           fi
+          sudo rm -rf llvm-project/.git
           sudo mv llvm-project ${{ env.rootfs }}
 
       - name: Build System Setup

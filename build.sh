@@ -9,17 +9,17 @@ setup() {
 	yum install -y libedit-devel libxml2-devel automake ncurses-devel git2 zlib-devel libffi-devel libxml2-devel zstd libzstd-devel xz xz-devel binutils-devel patchelf openssl11
 	yum install -y devtoolset-11-gcc devtoolset-11-gcc-c++ devtoolset-11-binutils-devel devtoolset-11-runtime devtoolset-11-libstdc++-devel
 	# python3
-	curl -sL https://us.cooluc.com/python3/python-3.10.14.tar.xz -o /tmp/python3.tar.xz
+	curl -sL https://github.com/sbwml/kernel-latest-centos/releases/download/rootfs/python-3.10.14.tar.xz -o /tmp/python3.tar.xz
 	mkdir -p /opt
 	tar xf /tmp/python3.tar.xz -C /opt/
- 	rm -f /tmp/opt_python3.tar.xz
+	rm -f /tmp/opt_python3.tar.xz
 }
 
 build_dll() {
 	source /opt/rh/devtoolset-11/enable
 	export PATH="/opt/tools/bin:/opt/clang/bin:/opt/python3/bin:$PATH"
 	export LD_LIBRARY_PATH="/opt/clang/lib:/opt/python3/lib:$LD_LIBRARY_PATH"
- 	python3 --version
+	python3 --version
 	TOP=$(pwd)
 	# libxml2
 	CC=clang CXX=clang++ cmake -S libxml2 -B libxml2-build \
@@ -67,7 +67,7 @@ build_llvm() {
 	source /opt/rh/devtoolset-11/enable
 	export PATH="/opt/tools/bin:/opt/clang/bin:/opt/python3/bin:$PATH"
 	export LD_LIBRARY_PATH="/opt/clang/lib:/opt/python3/lib:$LD_LIBRARY_PATH"
- 	python3 --version
+	python3 --version
 	# Configure LLVM host tools
 	CC=clang CXX=clang++ cmake -G Ninja -S llvm-project/llvm -B llvm-host \
 		-DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" \
